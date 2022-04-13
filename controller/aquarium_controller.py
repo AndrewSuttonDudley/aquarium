@@ -4,9 +4,9 @@ import logging
 from service import aquarium_service
 
 
-aquarium_bp = Blueprint("aquarium_blueprint", __name__)
-
 logger = logging.getLogger('aquarium.aquarium_controller')
+
+aquarium_bp = Blueprint("aquarium_blueprint", __name__)
 
 
 @aquarium_bp.route('/hello-world', methods=['GET'])

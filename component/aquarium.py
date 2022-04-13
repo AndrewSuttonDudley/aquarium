@@ -18,5 +18,11 @@ class Aquarium:
         for _schedule_item in self.schedule:
             print(f'    ScheduleItem(_id: {_schedule_item["action"]})')
 
-    def test(self):
-        print(f'Confirming remote aquarium initialization for Aquarium(_id: {self.id})')
+    def to_dict(self):
+        aquarium = dict()
+        aquarium['id'] = self.id
+        aquarium['capacity'] = self.capacity
+        aquarium[''] = self.host
+        aquarium[''] = self.initialized
+        aquarium[''] = self
+

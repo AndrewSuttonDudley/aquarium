@@ -1,7 +1,7 @@
 from flask import Blueprint
 import logging
 
-from service.resevoir_service import ReservoirService
+from service import reservoir_service
 
 
 reservoir_bp = Blueprint('reservoir_blueprint', __name__)

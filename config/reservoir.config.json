@@ -1,9 +1,11 @@
 {
-  "systemId": "BigBetty",
-  "systemHost": "<system-host-address>",
+  "id": "BigBetty",
+  "capacity": 90,
+  "port": "8803",
+  "systemHost": "http://localhost:8800/system",
   "sourcePumps": [
     {
-        "id": "Phil",
+      "id": "Phil",
       "module": "Pump",
       "resourceKey": "Receptacle 1"
     }

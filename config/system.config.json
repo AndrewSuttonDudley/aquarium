@@ -1,13 +1,14 @@
 {
   "id": "Lucinda",
+  "port": "8800",
   "aquariums": [
     {
       "id": "Office20",
-      "host": "<aquarium-host-address>"
+      "host": "http://localhost:8801/aquarium"
     },
     {
       "id": "Kids10",
-      "host": "<aquarium-host-address>"
+      "host": "http://localhost:8802/aquarium"
     }
   ],
   "notification_rules": [
@@ -16,7 +17,7 @@
   "reservoirs": [
     {
       "id": "BigBetty",
-      "host": "<reservoir-host-address>"
+      "host": "http://localhost:8803/reservoir"
     }
   ]
 }

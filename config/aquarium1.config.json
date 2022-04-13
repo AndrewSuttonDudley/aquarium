@@ -3,17 +3,8 @@
   "capacity": 20,
   "description": "Office 20",
   "name": "Office 20",
-  "schedule": [
-    {
-      "action": "Water_Change",
-      "cron": "0 5 1 ? * *",
-      "percentAmount": 25
-    },
-    {
-      "action": "Level_Check",
-      "cron": "0 10 1 ? * *"
-    }
-  ],
+  "port": "8801",
+  "systemHost": "http://localhost:8800/system",
   "filterPumps": [
     {
       "id": "filterPump1",
@@ -75,7 +66,6 @@
       "resourceKey": "GPIO 9"
     }
   ],
-  "systemHost": "<system-host-address>",
   "thermometers": [
     {
       "id": "thermometer1",
