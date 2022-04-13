@@ -1,0 +1,129 @@
+{
+  "systemId": "BigBetty",
+  "systemHost": "<system-host-address>",
+  "sourcePumps": [
+    {
+        "id": "Phil",
+      "module": "Pump",
+      "resourceKey": "Receptacle 1"
+    }
+  ],
+  "sourceValves": [
+    {
+      "id": "Karen",
+      "module": "Valve",
+      "resourceKey": "GPIO 1"
+    }
+  ],
+  "levelSensors": [
+    {
+      "id": "level100A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 2"
+    },
+    {
+      "id": "level100B",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 3"
+    },
+    {
+      "id": "level100C",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 4"
+    },
+    {
+      "id": "level80A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 5"
+    },
+    {
+      "id": "level60A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 6"
+    },
+    {
+      "id": "level40A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 7"
+    },
+    {
+      "id": "level20A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 8"
+    },
+    {
+      "id": "level20B",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 9"
+    },
+    {
+      "id": "level20C",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 10"
+    }
+  ],
+  "thermometers": [
+    {
+      "id": "thermometer1",
+      "module": "Thermometer",
+      "resourceKey": "GPIO 11"
+    },
+    {
+      "id": "thermometer2",
+      "module": "Thermometer",
+      "resourceKey": "GPIO 12"
+    }
+  ],
+  "waterJets": [
+    {
+      "id": "Lance",
+      "module": "WaterJet",
+      "resourceKey": "Receptacle 2"
+    }
+  ],
+  "heaters": [
+    {
+      "id": "Sophia",
+      "module": "Heater",
+      "resourceKey": "Receptacle 3"
+    }
+  ],
+  "sendValves": [
+    {
+      "id": "ValveToOffice20",
+      "module": "Valve",
+      "resourceKey": "GPIO 13"
+    },
+    {
+      "id": "ValveToKids10",
+      "module": "Valve",
+      "resourceKey": "GPIO 14"
+    }
+  ],
+  "sendPumps": [
+    {
+      "id": "Fernando",
+      "module": "Pump",
+      "resourceKey": "Receptacle 4"
+    }
+  ],
+  "receiverValves": [
+    {
+      "id": "ValveFromOffice20",
+      "module": "Valve",
+      "resourceKey": "GPIO 15"
+    },
+    {
+      "id": "ValveFromKids10",
+      "module": "Valve",
+      "resourceKey": "GPIO 16"
+    }
+  ],
+  "receiverPumps": [
+    {
+      "id": "AsaAkira",
+      "module": "Pump",
+      "resourceKey": "Receptacle 5"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "Lucinda",
+  "aquariums": [
+    {
+      "id": "Office20",
+      "host": "<aquarium-host-address>"
+    },
+    {
+      "id": "Kids10",
+      "host": "<aquarium-host-address>"
+    }
+  ],
+  "notification_rules": [
+
+  ],
+  "reservoirs": [
+    {
+      "id": "BigBetty",
+      "host": "<reservoir-host-address>"
+    }
+  ]
+}

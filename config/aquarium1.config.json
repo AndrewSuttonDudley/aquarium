@@ -1,0 +1,98 @@
+{
+  "id": "Office20",
+  "capacity": 20,
+  "description": "Office 20",
+  "name": "Office 20",
+  "schedule": [
+    {
+      "action": "Water_Change",
+      "cron": "0 5 1 ? * *",
+      "percentAmount": 25
+    },
+    {
+      "action": "Level_Check",
+      "cron": "0 10 1 ? * *"
+    }
+  ],
+  "filterPumps": [
+    {
+      "id": "filterPump1",
+      "module": "Pump",
+      "resourceKey": "Receptacle 1"
+    }
+  ],
+  "heaters": [
+    {
+      "id": "heater1",
+      "module": "Heater",
+      "resourceKey": "Receptacle 2"
+    }
+  ],
+  "levelSensors": [
+    {
+      "id": "level100A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 1"
+    },
+    {
+      "id": "level100B",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 2"
+    },
+    {
+      "id": "level100C",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 3"
+    },
+    {
+      "id": "level80A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 4"
+    },
+    {
+      "id": "level60A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 5"
+    },
+    {
+      "id": "level40A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 6"
+    },
+    {
+      "id": "level20A",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 7"
+    },
+    {
+      "id": "level20B",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 8"
+    },
+    {
+      "id": "level20C",
+      "module": "LevelSensor",
+      "resourceKey": "GPIO 9"
+    }
+  ],
+  "systemHost": "<system-host-address>",
+  "thermometers": [
+    {
+      "id": "thermometer1",
+      "module": "Thermometer",
+      "resourceKey": "GPIO 10"
+    },
+    {
+      "id": "thermometer2",
+      "module": "Thermometer",
+      "resourceKey": "GPIO 11"
+    }
+  ],
+  "waterJets": [
+    {
+      "id": "waterJet1",
+      "module": "WaterJet",
+      "resourceKey": "Receptacle 3"
+    }
+  ]
+}
