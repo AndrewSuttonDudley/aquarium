@@ -6,14 +6,14 @@ class Reservoir:
     initialized = True
     name = ""
     registered = False
+    schedules = []
     tested = False
 
-    def __init__(self, id, host):
+    def __init__(self, id, capacity, host, name):
         self.id = id
+        self.capacity = capacity
         self.host = host
+        self.name = name
 
-    def print(self):
-        print(f'Reservoir(_id: {self.id}, _capacity: {self.capacity}, name: {self.name})')
-
-    def test(self):
-        print(f'Confirming remote aquarium initialization for Reservoir(_id: {self.id})')
+    def to_string(self):
+        return f'Reservoir(id: {self.id}, capacity: {self.capacity}, name: {self.name})'

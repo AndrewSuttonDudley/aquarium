@@ -6,23 +6,14 @@ class Aquarium:
     initialized = False
     name = ""
     registered = False
-    schedule = []
+    schedules = []
     tested = False
 
-    def __init__(self, id, host):
+    def __init__(self, id, capacity, host, name):
         self.id = id
+        self.capacity = capacity
         self.host = host
+        self.name = name
 
-    def print(self):
-        print(f'Aquarium(_id: {self.id}, _capacity: {self.capacity}, name: {self.name})')
-        for _schedule_item in self.schedule:
-            print(f'    ScheduleItem(_id: {_schedule_item["action"]})')
-
-    def to_dict(self):
-        aquarium = dict()
-        aquarium['id'] = self.id
-        aquarium['capacity'] = self.capacity
-        aquarium[''] = self.host
-        aquarium[''] = self.initialized
-        aquarium[''] = self
-
+    def to_string(self):
+        return f'Aquarium(id: {self.id}, capacity: {self.capacity}, host: {self.host}, name: {self.name})'

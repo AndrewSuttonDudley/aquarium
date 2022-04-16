@@ -1,3 +1,4 @@
+from enum import Enum
 import logging
 import requests
 
@@ -11,16 +12,30 @@ from util import file_util
 
 logger = logging.getLogger('aquarium.aquarium_service')
 
-config = dict()
 
+class AquariumJob(Enum):
+    REGISTER = 'register'
+
+
+class AquariumStatus(Enum):
+    STARTED = 'started'
+    INITIALIZED = 'initialized'
+    ACTIVE = 'active'
+
+
+SCHEDULER = 'scheduler'
+
+config = dict()
 filter_pumps = []
 heaters = []
 level_sensors = []
+status = AquariumStatus.STARTED
 thermometers = []
 water_jets = []
 
 
 def initialize(config_filename: str):
+    global status
     logger.info('Initializing AquariumService')
     aquarium_config = file_util.load_json_file(config_filename)
 
@@ -32,6 +47,7 @@ def initialize(config_filename: str):
     config['system_host'] = aquarium_config['systemHost']
 
     initialize_components(aquarium_config)
+    status = AquariumStatus.INITIALIZED
 
 
 def initialize_components(aquarium_config):
@@ -83,6 +99,14 @@ def initialize_water_jets(aquarium_config):
 
 
 def register_with_system():
+    global status
     url = f'{config["system_host"]}/aquariums/{config["id"]}/register'
-    logger.info(f'Attempting to register with url: {url}')
-    requests.put(url)
+    logger.info(f'Attempting to register with System url: {url}')
+    try:
+        response = requests.put(url)
+    except OSError:
+        logger.info(f'Connection refused. System not found.')
+    else:
+        logger.info(f'Success: {response}')
+        config[SCHEDULER].remove_job(job_id=AquariumJob.REGISTER.value)
+        status = AquariumStatus.ACTIVE

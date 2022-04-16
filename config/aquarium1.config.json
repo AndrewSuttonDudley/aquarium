@@ -3,7 +3,7 @@
   "capacity": 20,
   "description": "Office 20",
   "name": "Office 20",
-  "port": "8801",
+  "port": "8802",
   "systemHost": "http://localhost:8800/system",
   "filterPumps": [
     {

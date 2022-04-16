@@ -1,4 +1,6 @@
+from enum import Enum
 import logging
+import requests
 
 from component.heater import Heater
 from component.level_sensor import LevelSensor
@@ -11,6 +13,19 @@ from util import file_util
 
 logger = logging.getLogger('aquarium.reservoir_service')
 
+
+class ReservoirJob(Enum):
+    REGISTER = 'register'
+
+
+class ReservoirStatus(Enum):
+    STARTED = 'started'
+    INITIALIZED = 'initialized'
+    ACTIVE = 'active'
+
+
+SCHEDULER = 'scheduler'
+
 config = dict()
 heaters = []
 level_sensors = []
@@ -19,17 +34,24 @@ receiver_valves = []
 send_pumps = []
 send_valves = []
 source_pumps = []
+status = ReservoirStatus.STARTED
 source_valves = []
 thermometers = []
 water_jets = []
 
 
 def initialize(config_filename: str):
+    global status
     logger.info('Initializing ReservoirService')
     reservoir_config = file_util.load_json_file(config_filename)
+
+    config['id'] = reservoir_config['id']
+    config['capacity'] = reservoir_config['capacity']
     config['port'] = reservoir_config['port']
     config['system_host'] = reservoir_config['systemHost']
+
     initialize_components(reservoir_config)
+    status = ReservoirStatus.INITIALIZED
 
 
 def initialize_components(reservoir_config):
@@ -123,3 +145,17 @@ def initialize_water_jets(reservoir_config):
         logger.info(f'Initializing water jet id: {water_jet["id"]}')
         water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey']))
     logger.info(f'{len(water_jets)} water jets initialized')
+
+
+def register_with_system():
+    global status
+    url = f'{config["system_host"]}/reservoirs/{config["id"]}/register'
+    logger.info(f'Attempting to register with System url: {url}')
+    try:
+        response = requests.put(url)
+    except OSError:
+        logger.info(f'Connection refused. System not found.')
+    else:
+        logger.info(f'Success: {response}')
+        config[SCHEDULER].remove_job(job_id=ReservoirJob.REGISTER.value)
+        status = ReservoirStatus.ACTIVE

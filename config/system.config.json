@@ -4,20 +4,62 @@
   "aquariums": [
     {
       "id": "Office20",
-      "host": "http://localhost:8801/aquarium"
+      "capacity": 20,
+      "description": "Office 20",
+      "host": "http://localhost:8802/aquarium",
+      "name": "Office 20",
+      "schedules": [
+        {
+          "id": "Office20WaterChange",
+          "type": "WaterChange",
+          "cron": "0 30 9 ? * *"
+        },
+        {
+          "id": "Office20TemperatureCheck",
+          "type": "TemperatureCheck",
+          "cron": "0 */10 * ? * *"
+        }
+      ]
     },
     {
       "id": "Kids10",
-      "host": "http://localhost:8802/aquarium"
+      "capacity": 10,
+      "description": "Kids 10",
+      "host": "http://localhost:8803/aquarium",
+      "name": "Kids 10",
+      "schedules": [
+        {
+          "id": "Kids10WaterChange",
+          "type": "WaterChange",
+          "cron": "0 30 10 ? * *"
+        },
+        {
+          "id": "Kids10TemperatureCheck",
+          "type": "TemperatureCheck",
+          "cron": "0 */10 * ? * *"
+        }
+      ]
     }
   ],
-  "notification_rules": [
-
-  ],
+  "notification_rules": [],
   "reservoirs": [
     {
       "id": "BigBetty",
-      "host": "http://localhost:8803/reservoir"
+      "capacity": 90,
+      "host": "http://localhost:8801/reservoir",
+      "name": "Big Betty",
+      "schedules": [
+        {
+          "id": "BigBettyLevelCheck",
+          "type": "LevelCheck",
+          "cron": "0 */5 * ? * *"
+        },
+        {
+          "id": "BigBettyTemperatureCheck",
+          "type": "TemperatureCheck",
+          "cron": "0 */10 * ? * *"
+        }
+      ]
     }
   ]
 }
