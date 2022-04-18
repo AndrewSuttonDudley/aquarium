@@ -9,6 +9,11 @@ logger = logging.getLogger('aquarium.aquarium_controller')
 aquarium_bp = Blueprint("aquarium_blueprint", __name__)
 
 
+@aquarium_bp.route('/health-check', methods=['GET'])
+def health_check():
+    return 'Healthy'
+
+
 @aquarium_bp.route('/hello-world', methods=['GET'])
 def hello_world():
     logger.info('Hello World!')

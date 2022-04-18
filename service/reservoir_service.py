@@ -1,5 +1,7 @@
+from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
 import logging
+from typing import Optional
 import requests
 
 from component.heater import Heater
@@ -20,38 +22,46 @@ class ReservoirJob(Enum):
 
 class ReservoirStatus(Enum):
     STARTED = 'started'
-    INITIALIZED = 'initialized'
+    INITIALIZING = 'INITIALIZING'
     ACTIVE = 'active'
 
 
 SCHEDULER = 'scheduler'
 
-config = dict()
+id: Optional[str] = None
+capacity: Optional[int] = None
 heaters = []
 level_sensors = []
+port: Optional[int] = None
 receiver_pumps = []
 receiver_valves = []
+scheduler: Optional[BackgroundScheduler] = None
 send_pumps = []
 send_valves = []
 source_pumps = []
-status = ReservoirStatus.STARTED
 source_valves = []
+status = ReservoirStatus.STARTED
+system_host: Optional[str] = None
 thermometers = []
 water_jets = []
 
 
-def initialize(config_filename: str):
-    global status
+def initialize(config_filename: str, _scheduler: BackgroundScheduler):
+    global id, capacity, port, scheduler, status, system_host
+    status = ReservoirStatus.INITIALIZING
     logger.info('Initializing ReservoirService')
     reservoir_config = file_util.load_json_file(config_filename)
 
-    config['id'] = reservoir_config['id']
-    config['capacity'] = reservoir_config['capacity']
-    config['port'] = reservoir_config['port']
-    config['system_host'] = reservoir_config['systemHost']
-
     initialize_components(reservoir_config)
-    status = ReservoirStatus.INITIALIZED
+
+    id = reservoir_config['id']
+    capacity = reservoir_config['capacity']
+    port = reservoir_config['port']
+    scheduler = _scheduler
+    system_host = reservoir_config['systemHost']
+
+    scheduler.add_job(func=register_with_system, id=ReservoirJob.REGISTER.value, trigger='interval', seconds=6)
+    status = ReservoirStatus.ACTIVE
 
 
 def initialize_components(reservoir_config):
@@ -149,7 +159,7 @@ def initialize_water_jets(reservoir_config):
 
 def register_with_system():
     global status
-    url = f'{config["system_host"]}/reservoirs/{config["id"]}/register'
+    url = f'{system_host}/reservoirs/{id}/register'
     logger.info(f'Attempting to register with System url: {url}')
     try:
         response = requests.put(url)
@@ -157,5 +167,5 @@ def register_with_system():
         logger.info(f'Connection refused. System not found.')
     else:
         logger.info(f'Success: {response}')
-        config[SCHEDULER].remove_job(job_id=ReservoirJob.REGISTER.value)
+        scheduler.remove_job(job_id=ReservoirJob.REGISTER.value)
         status = ReservoirStatus.ACTIVE

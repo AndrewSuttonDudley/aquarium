@@ -1,6 +1,7 @@
 {
   "id": "Lucinda",
   "port": "8800",
+  "timezone": "US/Eastern",
   "aquariums": [
     {
       "id": "Office20",
@@ -11,13 +12,19 @@
       "schedules": [
         {
           "id": "Office20WaterChange",
-          "type": "WaterChange",
-          "cron": "0 30 9 ? * *"
+          "day_of_week": "mon,tue,wed,thu,fri,sat,sun",
+          "hour": "*",
+          "minute": "*",
+          "percent_change": 25,
+          "type": "water_change"
         },
         {
           "id": "Office20TemperatureCheck",
-          "type": "TemperatureCheck",
-          "cron": "0 */10 * ? * *"
+          "day_of_week": "mon,tue,wed,thu,fri,sat,sun",
+          "hour": "*",
+          "minute": "*/10",
+          "percent_change": 25,
+          "type": "temperature_check"
         }
       ]
     },
@@ -30,13 +37,19 @@
       "schedules": [
         {
           "id": "Kids10WaterChange",
-          "type": "WaterChange",
-          "cron": "0 30 10 ? * *"
+          "day_of_week": "mon,tue,wed,thu,fri,sat,sun",
+          "hour": "10",
+          "minute": "30",
+          "percent_change": 25,
+          "type": "water_change"
         },
         {
           "id": "Kids10TemperatureCheck",
-          "type": "TemperatureCheck",
-          "cron": "0 */10 * ? * *"
+          "day_of_week": "mon,tue,wed,thu,fri,sat,sun",
+          "hour": "*",
+          "minute": "*/10",
+          "percent_change": 25,
+          "type": "temperature_check"
         }
       ]
     }
@@ -51,13 +64,19 @@
       "schedules": [
         {
           "id": "BigBettyLevelCheck",
-          "type": "LevelCheck",
-          "cron": "0 */5 * ? * *"
+          "day_of_week": "*",
+          "hour": "*",
+          "minute": "*",
+          "percent_change": 25,
+          "type": "level_check"
         },
         {
           "id": "BigBettyTemperatureCheck",
-          "type": "TemperatureCheck",
-          "cron": "0 */10 * ? * *"
+          "day_of_week": "*",
+          "hour": "*",
+          "minute": "*",
+          "percent_change": 25,
+          "type": "temperature_check"
         }
       ]
     }

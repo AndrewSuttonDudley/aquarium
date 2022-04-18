@@ -1,5 +1,7 @@
+from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
 import logging
+from typing import Optional
 import requests
 
 from component.heater import Heater
@@ -19,35 +21,44 @@ class AquariumJob(Enum):
 
 class AquariumStatus(Enum):
     STARTED = 'started'
-    INITIALIZED = 'initialized'
+    INITIALIZING = 'initializing'
+    REGISTERING = 'registering'
     ACTIVE = 'active'
 
 
-SCHEDULER = 'scheduler'
-
-config = dict()
+id: Optional[str] = None
+capacity: Optional[int] = None
+description: Optional[str] = None
 filter_pumps = []
 heaters = []
 level_sensors = []
+name: Optional[str] = None
+port: Optional[int] = None
+scheduler: Optional[BackgroundScheduler] = None
 status = AquariumStatus.STARTED
+system_host: Optional[str] = None
 thermometers = []
 water_jets = []
 
 
-def initialize(config_filename: str):
-    global status
+def initialize(config_filename: str, _scheduler: BackgroundScheduler):
+    global id, capacity, description, name, port, scheduler, status, system_host
+    status = AquariumStatus.INITIALIZING
     logger.info('Initializing AquariumService')
     aquarium_config = file_util.load_json_file(config_filename)
 
-    config['id'] = aquarium_config['id']
-    config['capacity'] = aquarium_config['capacity']
-    config['description'] = aquarium_config['description']
-    config['name'] = aquarium_config['name']
-    config['port'] = aquarium_config['port']
-    config['system_host'] = aquarium_config['systemHost']
-
     initialize_components(aquarium_config)
-    status = AquariumStatus.INITIALIZED
+
+    id = aquarium_config['id']
+    capacity = aquarium_config['capacity']
+    description = aquarium_config['description']
+    name = aquarium_config['name']
+    port = aquarium_config['port']
+    scheduler = _scheduler
+    system_host = aquarium_config['systemHost']
+
+    scheduler.add_job(func=register_with_system, id=AquariumJob.REGISTER.value, trigger='interval', seconds=6)
+    status = AquariumStatus.REGISTERING
 
 
 def initialize_components(aquarium_config):
@@ -100,7 +111,7 @@ def initialize_water_jets(aquarium_config):
 
 def register_with_system():
     global status
-    url = f'{config["system_host"]}/aquariums/{config["id"]}/register'
+    url = f'{system_host}/aquariums/{id}/register'
     logger.info(f'Attempting to register with System url: {url}')
     try:
         response = requests.put(url)
@@ -108,5 +119,5 @@ def register_with_system():
         logger.info(f'Connection refused. System not found.')
     else:
         logger.info(f'Success: {response}')
-        config[SCHEDULER].remove_job(job_id=AquariumJob.REGISTER.value)
+        scheduler.remove_job(job_id=AquariumJob.REGISTER.value)
         status = AquariumStatus.ACTIVE
