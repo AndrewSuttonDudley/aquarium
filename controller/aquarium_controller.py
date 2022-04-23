@@ -1,3 +1,5 @@
+import http
+
 from flask import Blueprint
 import logging
 
@@ -11,10 +13,4 @@ aquarium_bp = Blueprint("aquarium_blueprint", __name__)
 
 @aquarium_bp.route('/health-check', methods=['GET'])
 def health_check():
-    return 'Healthy'
-
-
-@aquarium_bp.route('/hello-world', methods=['GET'])
-def hello_world():
-    logger.info('Hello World!')
-    return 'Hello World!'
+    return '', http.HTTPStatus.NO_CONTENT

@@ -24,11 +24,6 @@ flask.logger.setLevel(logging.INFO)
 logger = flask.logger
 
 
-@flask.route('/health', methods=['GET'])
-def health():
-    return 'healthy'
-
-
 if __name__ == '__main__':
     server_role = os.environ.get('AQUARIUM_SERVER_ROLE')
     logger.info(f'server_role: {server_role}')
@@ -37,27 +32,30 @@ if __name__ == '__main__':
 
     scheduler = BackgroundScheduler()
     port: typing.Optional[int] = None
+    init_result = True
     if server_role[:8] == 'aquarium':
         aquarium_service.initialize(config_filename, scheduler)
         port = aquarium_service.port
         flask.register_blueprint(aquarium_bp, url_prefix='/aquarium')
-
     elif server_role[:9] == 'reservoir':
         reservoir_service.initialize(config_filename, scheduler)
         port = reservoir_service.port
         flask.register_blueprint(reservoir_bp, url_prefix='/reservoir')
-
     elif server_role == 'system':
-        system_service.initialize(config_filename, scheduler)
+        init_result = system_service.initialize(config_filename, scheduler)
         port = system_service.port
         flask.register_blueprint(system_bp, url_prefix='/system')
-
     else:
         raise 'Required environment variable AQUARIUM_SERVER_ROLE not found. Server not starting.'
 
-    logger.info('Starting initial scheduled tasks')
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown())
+    if port is None:
+        logger.info('port not defined. Shutting down server')
+    elif not init_result:
+        logger.info('Schedule IDs are not unique. Shutting down server')
+    else:
+        logger.info('Starting initial scheduled tasks')
+        scheduler.start()
+        atexit.register(lambda: scheduler.shutdown())
 
-    logger.info('Running flask app')
-    flask.run(port=port)  # (debug=True)
+        logger.info('Running flask app')
+        flask.run(port=port)  # (debug=True)

@@ -7,6 +7,7 @@ import requests
 from component.heater import Heater
 from component.level_sensor import LevelSensor
 from component.pump import Pump
+from connector import aquarium_connector
 from component.thermometer import Thermometer
 from component.water_jet import WaterJet
 from util import file_util
@@ -17,6 +18,7 @@ logger = logging.getLogger('aquarium.aquarium_service')
 
 class AquariumJob(Enum):
     REGISTER = 'register'
+    HEALTH_CHECK = 'health_check'
 
 
 class AquariumStatus(Enum):
@@ -39,6 +41,58 @@ status = AquariumStatus.STARTED
 system_host: Optional[str] = None
 thermometers = []
 water_jets = []
+
+
+def change_status(new_status: AquariumStatus):
+    global status
+    logger.info(f'Changing aquarium status from {status} to {new_status}')
+    match status:
+        case AquariumStatus.ACTIVE:
+            logger.info('status: ACTIVE')
+            match new_status:
+                case AquariumStatus.REGISTERING:
+                    logger.info('new_status: REGISTERING')
+                    status = AquariumStatus.REGISTERING
+                    scheduler.remove_job(job_id=AquariumJob.HEALTH_CHECK.value)
+                    scheduler.add_job(func=aquarium_connector.register_with_system, id=AquariumJob.REGISTER.value,
+                                      trigger='interval', seconds=10)
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case AquariumStatus.INITIALIZING:
+            logger.info('status: INITIALIZING')
+            match new_status:
+                case AquariumStatus.REGISTERING:
+                    logger.info('new_status: REGISTERING')
+                    status = AquariumStatus.REGISTERING
+                    scheduler.add_job(func=aquarium_connector.register_with_system, id=AquariumJob.REGISTER.value,
+                                      trigger='interval', seconds=10)
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case AquariumStatus.REGISTERING:
+            logger.info('status: REGISTERING')
+            match new_status:
+                case AquariumStatus.ACTIVE:
+                    logger.info('new_status: ACTIVE')
+                    status = AquariumStatus.ACTIVE
+                    scheduler.remove_job(job_id=AquariumJob.REGISTER.value)
+                    scheduler.add_job(func=lambda: aquarium_connector.system_health_check(id), id=AquariumJob.HEALTH_CHECK.value,
+                                      trigger='interval', seconds=10)
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case AquariumStatus.STARTED:
+            logger.info('status: STARTED')
+            match new_status:
+                case AquariumStatus.INITIALIZING:
+                    logger.info('new_status: INITIALIZING')
+                    status = AquariumStatus.INITIALIZING
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case _:
+            logger.info(f'status value not recognized: {status}')
 
 
 def initialize(config_filename: str, _scheduler: BackgroundScheduler):
@@ -121,3 +175,8 @@ def register_with_system():
         logger.info(f'Success: {response}')
         scheduler.remove_job(job_id=AquariumJob.REGISTER.value)
         status = AquariumStatus.ACTIVE
+        scheduler.add_job(func=system_health_check, id=AquariumJob.HEALTH_CHECK.value, trigger='interval', seconds=10)
+
+
+def system_health_check():
+    logger.info('Running system health check.')

@@ -1,16 +1,17 @@
+import apscheduler.job
 from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
+from util import file_util
 import logging
 from typing import Optional
-import requests
 
 from component.heater import Heater
 from component.level_sensor import LevelSensor
 from component.pump import Pump
+from connector import reservoir_connector
 from component.thermometer import Thermometer
 from component.valve import Valve
 from component.water_jet import WaterJet
-from util import file_util
 
 
 logger = logging.getLogger('aquarium.reservoir_service')
@@ -18,11 +19,13 @@ logger = logging.getLogger('aquarium.reservoir_service')
 
 class ReservoirJob(Enum):
     REGISTER = 'register'
+    HEALTH_CHECK = 'health_check'
 
 
 class ReservoirStatus(Enum):
     STARTED = 'started'
-    INITIALIZING = 'INITIALIZING'
+    INITIALIZING = 'initializing'
+    REGISTERING = 'registering'
     ACTIVE = 'active'
 
 
@@ -46,10 +49,67 @@ thermometers = []
 water_jets = []
 
 
+def change_status(new_status: ReservoirStatus):
+    global status
+    logger.info(f'Changing reservoir status from {status} to {new_status}')
+    match status:
+        case ReservoirStatus.ACTIVE:
+            logger.info('status: ACTIVE')
+            match new_status:
+                case ReservoirStatus.REGISTERING:
+                    logger.info('new_status: REGISTERING')
+                    status = ReservoirStatus.REGISTERING
+                    logger.info(f'Removing health check job with ID: {ReservoirJob.HEALTH_CHECK.value}. Existing jobs:')
+                    for job in scheduler.get_jobs():
+                        logger.info(f'Job ID: {job.id}')
+                    scheduler.remove_job(job_id=ReservoirJob.HEALTH_CHECK.value)
+                    for job in scheduler.get_jobs():
+                        logger.info(f'Job ID: {job.id}')
+                    scheduler.add_job(func=reservoir_connector.register_with_system, id=ReservoirJob.REGISTER.value,
+                                      trigger='interval', seconds=10)
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case ReservoirStatus.INITIALIZING:
+            logger.info('status: INITIALIZING')
+            match new_status:
+                case ReservoirStatus.REGISTERING:
+                    logger.info('new_status: REGISTERING')
+                    status = ReservoirStatus.REGISTERING
+                    scheduler.add_job(func=reservoir_connector.register_with_system, id=ReservoirJob.REGISTER.value,
+                                      trigger='interval', seconds=10)
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case ReservoirStatus.REGISTERING:
+            logger.info('status: REGISTERING')
+            match new_status:
+                case ReservoirStatus.ACTIVE:
+                    logger.info('new_status: ACTIVE')
+                    status = ReservoirStatus.ACTIVE
+                    scheduler.remove_job(job_id=ReservoirJob.REGISTER.value)
+                    scheduler.add_job(func=lambda: reservoir_connector.system_health_check(id), id=ReservoirJob.HEALTH_CHECK.value,
+                                      trigger='interval', seconds=10)
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case ReservoirStatus.STARTED:
+            logger.info('status: STARTED')
+            match new_status:
+                case ReservoirStatus.INITIALIZING:
+                    logger.info('new_status: INITIALIZING')
+                    status = ReservoirStatus.INITIALIZING
+                case _:
+                    logger.info(f'Invalid status change from {status} to {new_status}')
+
+        case _:
+            logger.info(f'status value not recognized: {status}')
+
+
 def initialize(config_filename: str, _scheduler: BackgroundScheduler):
     global id, capacity, port, scheduler, status, system_host
-    status = ReservoirStatus.INITIALIZING
     logger.info('Initializing ReservoirService')
+    change_status(ReservoirStatus.INITIALIZING)
     reservoir_config = file_util.load_json_file(config_filename)
 
     initialize_components(reservoir_config)
@@ -60,8 +120,7 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler):
     scheduler = _scheduler
     system_host = reservoir_config['systemHost']
 
-    scheduler.add_job(func=register_with_system, id=ReservoirJob.REGISTER.value, trigger='interval', seconds=6)
-    status = ReservoirStatus.ACTIVE
+    change_status(ReservoirStatus.REGISTERING)
 
 
 def initialize_components(reservoir_config):
@@ -155,17 +214,3 @@ def initialize_water_jets(reservoir_config):
         logger.info(f'Initializing water jet id: {water_jet["id"]}')
         water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey']))
     logger.info(f'{len(water_jets)} water jets initialized')
-
-
-def register_with_system():
-    global status
-    url = f'{system_host}/reservoirs/{id}/register'
-    logger.info(f'Attempting to register with System url: {url}')
-    try:
-        response = requests.put(url)
-    except OSError:
-        logger.info(f'Connection refused. System not found.')
-    else:
-        logger.info(f'Success: {response}')
-        scheduler.remove_job(job_id=ReservoirJob.REGISTER.value)
-        status = ReservoirStatus.ACTIVE
