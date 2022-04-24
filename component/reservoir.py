@@ -16,6 +16,7 @@ class Reservoir:
         self.id = id
         self.capacity = capacity
         self.host = host
+        self.initialized = True
         self.name = name
         self.schedules = list()
 

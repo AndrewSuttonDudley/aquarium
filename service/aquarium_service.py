@@ -2,12 +2,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
 import logging
 from typing import Optional
-import requests
 
 from component.heater import Heater
 from component.level_sensor import LevelSensor
 from component.pump import Pump
-from connector import aquarium_connector
+from connector import system_connector
 from component.thermometer import Thermometer
 from component.water_jet import WaterJet
 from util import file_util
@@ -54,7 +53,7 @@ def change_status(new_status: AquariumStatus):
                     logger.info('new_status: REGISTERING')
                     status = AquariumStatus.REGISTERING
                     scheduler.remove_job(job_id=AquariumJob.HEALTH_CHECK.value)
-                    scheduler.add_job(func=aquarium_connector.register_with_system, id=AquariumJob.REGISTER.value,
+                    scheduler.add_job(func=lambda: system_connector.register_aquarium_with_system(id), id=AquariumJob.REGISTER.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
@@ -65,7 +64,7 @@ def change_status(new_status: AquariumStatus):
                 case AquariumStatus.REGISTERING:
                     logger.info('new_status: REGISTERING')
                     status = AquariumStatus.REGISTERING
-                    scheduler.add_job(func=aquarium_connector.register_with_system, id=AquariumJob.REGISTER.value,
+                    scheduler.add_job(func=lambda: system_connector.register_aquarium_with_system(id), id=AquariumJob.REGISTER.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
@@ -77,7 +76,7 @@ def change_status(new_status: AquariumStatus):
                     logger.info('new_status: ACTIVE')
                     status = AquariumStatus.ACTIVE
                     scheduler.remove_job(job_id=AquariumJob.REGISTER.value)
-                    scheduler.add_job(func=lambda: aquarium_connector.system_health_check(id), id=AquariumJob.HEALTH_CHECK.value,
+                    scheduler.add_job(func=lambda: system_connector.aquarium_health_check(id), id=AquariumJob.HEALTH_CHECK.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
@@ -111,8 +110,7 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler):
     scheduler = _scheduler
     system_host = aquarium_config['systemHost']
 
-    scheduler.add_job(func=register_with_system, id=AquariumJob.REGISTER.value, trigger='interval', seconds=6)
-    status = AquariumStatus.REGISTERING
+    change_status(AquariumStatus.REGISTERING)
 
 
 def initialize_components(aquarium_config):
@@ -163,20 +161,6 @@ def initialize_water_jets(aquarium_config):
     logger.info(f'{len(water_jets)} water jets initialized')
 
 
-def register_with_system():
-    global status
-    url = f'{system_host}/aquariums/{id}/register'
-    logger.info(f'Attempting to register with System url: {url}')
-    try:
-        response = requests.put(url)
-    except OSError:
-        logger.info(f'Connection refused. System not found.')
-    else:
-        logger.info(f'Success: {response}')
-        scheduler.remove_job(job_id=AquariumJob.REGISTER.value)
-        status = AquariumStatus.ACTIVE
-        scheduler.add_job(func=system_health_check, id=AquariumJob.HEALTH_CHECK.value, trigger='interval', seconds=10)
-
-
-def system_health_check():
-    logger.info('Running system health check.')
+def level_check() -> int:
+    logger.info('Checking water level')
+    return 100

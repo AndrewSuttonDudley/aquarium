@@ -1,39 +1,33 @@
 import logging
 from math import floor
-import requests
 from typing import Optional
+import requests
 
-from service import aquarium_service
+from service import system_service
 
 
 logger = logging.getLogger('aquarium.aquarium_connector')
 
 
-def register_with_system():
-    url = f'{aquarium_service.system_host}/aquariums/{aquarium_service.id}/register'
-    logger.info(f'Attempting to register with url: {url}')
+def health_check(_aquarium_id: str) -> bool:
+    _aquarium = system_service.aquariums[_aquarium_id]
+    _url = f'{_aquarium.host}/health-check'
+    logger.info(f'Checking health of {_aquarium.name} at url: {_url}')
+    _response: Optional[requests.Response] = None
     try:
-        response = requests.put(url)
+        _response = requests.get(_url)
     except OSError:
-        logger.info('Connection refused. System not found')
-    else:
-        if response is None or floor(response.status_code / 200) != 2:
-            logger.info(f'response: {response}')
-        else:
-            logger.info(f'Success: {response}')
-            aquarium_service.change_status(aquarium_service.AquariumStatus.ACTIVE)
-
-
-def system_health_check(aquarium_id: str):
-    url = f'{aquarium_service.system_host}/aquariums/{aquarium_id}/health_check'
-    logger.info(f'Running system health check with url: {url}')
-    response: Optional[requests.Response] = None
-    try:
-        response = requests.get(url)
-    except OSError:
-        logger.info('Connection refused. System not found')
+        logger.info(f'Aquarium not found. Unregistering {_aquarium.name}')
+        return False
     finally:
-        if response is None or floor(response.status_code / 100) != 2:
-            logger.info(f'response: {response}')
-            if aquarium_service.status != aquarium_service.AquariumStatus.REGISTERING:
-                aquarium_service.change_status(aquarium_service.AquariumStatus.REGISTERING)
+        if _response is not None and floor(_response.status_code / 100) == 2:
+            logger.info(f'{_aquarium.name} is healthy')
+            return True
+
+        logger.info(f'_response: {_response}')
+        return False
+
+
+def level_check(_aquarium_id: str) -> int:
+    logger.info(f'Running level check for aquarium id: {_aquarium_id}')
+    return 100

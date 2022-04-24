@@ -1,4 +1,3 @@
-import apscheduler.job
 from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
 from util import file_util
@@ -8,7 +7,7 @@ from typing import Optional
 from component.heater import Heater
 from component.level_sensor import LevelSensor
 from component.pump import Pump
-from connector import reservoir_connector
+from connector import system_connector
 from component.thermometer import Thermometer
 from component.valve import Valve
 from component.water_jet import WaterJet
@@ -65,7 +64,7 @@ def change_status(new_status: ReservoirStatus):
                     scheduler.remove_job(job_id=ReservoirJob.HEALTH_CHECK.value)
                     for job in scheduler.get_jobs():
                         logger.info(f'Job ID: {job.id}')
-                    scheduler.add_job(func=reservoir_connector.register_with_system, id=ReservoirJob.REGISTER.value,
+                    scheduler.add_job(func=lambda: system_connector.register_reservoir_with_system(id), id=ReservoirJob.REGISTER.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
@@ -76,7 +75,7 @@ def change_status(new_status: ReservoirStatus):
                 case ReservoirStatus.REGISTERING:
                     logger.info('new_status: REGISTERING')
                     status = ReservoirStatus.REGISTERING
-                    scheduler.add_job(func=reservoir_connector.register_with_system, id=ReservoirJob.REGISTER.value,
+                    scheduler.add_job(func=lambda: system_connector.register_reservoir_with_system(id), id=ReservoirJob.REGISTER.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
@@ -88,7 +87,7 @@ def change_status(new_status: ReservoirStatus):
                     logger.info('new_status: ACTIVE')
                     status = ReservoirStatus.ACTIVE
                     scheduler.remove_job(job_id=ReservoirJob.REGISTER.value)
-                    scheduler.add_job(func=lambda: reservoir_connector.system_health_check(id), id=ReservoirJob.HEALTH_CHECK.value,
+                    scheduler.add_job(func=lambda: system_connector.reservoir_health_check(id), id=ReservoirJob.HEALTH_CHECK.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')

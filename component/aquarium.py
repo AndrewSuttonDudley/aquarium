@@ -1,4 +1,8 @@
+import logging
 from typing import Optional
+
+
+logger = logging.getLogger('aquarium.system_service')
 
 
 class Aquarium:
@@ -16,6 +20,7 @@ class Aquarium:
         self.id = id
         self.capacity = capacity
         self.host = host
+        self.initialized = True
         self.name = name
         self.schedules = list()
 
