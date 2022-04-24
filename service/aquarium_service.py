@@ -2,9 +2,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
 import logging
 from typing import Optional
+import os
 
 from component.heater import Heater
 from component.level_sensor import LevelSensor
+from service import level_sensor_service
 from component.pump import Pump
 from connector import system_connector
 from component.thermometer import Thermometer
@@ -16,15 +18,16 @@ logger = logging.getLogger('aquarium.aquarium_service')
 
 
 class AquariumJob(Enum):
-    REGISTER = 'register'
-    HEALTH_CHECK = 'health_check'
+    register = 'register'
+    health_check = 'health_check'
+    safety_check = 'safety_check'
 
 
 class AquariumStatus(Enum):
-    STARTED = 'started'
-    INITIALIZING = 'initializing'
-    REGISTERING = 'registering'
-    ACTIVE = 'active'
+    started = 'started'
+    initializing = 'initializing'
+    registering = 'registering'
+    active = 'active'
 
 
 id: Optional[str] = None
@@ -34,9 +37,10 @@ filter_pumps = []
 heaters = []
 level_sensors = []
 name: Optional[str] = None
+pid: Optional[int] = None
 port: Optional[int] = None
 scheduler: Optional[BackgroundScheduler] = None
-status = AquariumStatus.STARTED
+status = AquariumStatus.started
 system_host: Optional[str] = None
 thermometers = []
 water_jets = []
@@ -46,47 +50,47 @@ def change_status(new_status: AquariumStatus):
     global status
     logger.info(f'Changing aquarium status from {status} to {new_status}')
     match status:
-        case AquariumStatus.ACTIVE:
+        case AquariumStatus.active:
             logger.info('status: ACTIVE')
             match new_status:
-                case AquariumStatus.REGISTERING:
+                case AquariumStatus.registering:
                     logger.info('new_status: REGISTERING')
-                    status = AquariumStatus.REGISTERING
-                    scheduler.remove_job(job_id=AquariumJob.HEALTH_CHECK.value)
-                    scheduler.add_job(func=lambda: system_connector.register_aquarium_with_system(id), id=AquariumJob.REGISTER.value,
+                    status = AquariumStatus.registering
+                    scheduler.remove_job(job_id=AquariumJob.health_check.value)
+                    scheduler.add_job(func=lambda: system_connector.register_aquarium_with_system(id), id=AquariumJob.register.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
-        case AquariumStatus.INITIALIZING:
+        case AquariumStatus.initializing:
             logger.info('status: INITIALIZING')
             match new_status:
-                case AquariumStatus.REGISTERING:
+                case AquariumStatus.registering:
                     logger.info('new_status: REGISTERING')
-                    status = AquariumStatus.REGISTERING
-                    scheduler.add_job(func=lambda: system_connector.register_aquarium_with_system(id), id=AquariumJob.REGISTER.value,
+                    status = AquariumStatus.registering
+                    scheduler.add_job(func=lambda: system_connector.register_aquarium_with_system(id), id=AquariumJob.register.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
-        case AquariumStatus.REGISTERING:
+        case AquariumStatus.registering:
             logger.info('status: REGISTERING')
             match new_status:
-                case AquariumStatus.ACTIVE:
+                case AquariumStatus.active:
                     logger.info('new_status: ACTIVE')
-                    status = AquariumStatus.ACTIVE
-                    scheduler.remove_job(job_id=AquariumJob.REGISTER.value)
-                    scheduler.add_job(func=lambda: system_connector.aquarium_health_check(id), id=AquariumJob.HEALTH_CHECK.value,
+                    status = AquariumStatus.active
+                    scheduler.remove_job(job_id=AquariumJob.register.value)
+                    scheduler.add_job(func=lambda: system_connector.aquarium_health_check(id), id=AquariumJob.health_check.value,
                                       trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
-        case AquariumStatus.STARTED:
+        case AquariumStatus.started:
             logger.info('status: STARTED')
             match new_status:
-                case AquariumStatus.INITIALIZING:
+                case AquariumStatus.initializing:
                     logger.info('new_status: INITIALIZING')
-                    status = AquariumStatus.INITIALIZING
+                    status = AquariumStatus.initializing
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
@@ -95,8 +99,8 @@ def change_status(new_status: AquariumStatus):
 
 
 def initialize(config_filename: str, _scheduler: BackgroundScheduler):
-    global id, capacity, description, name, port, scheduler, status, system_host
-    status = AquariumStatus.INITIALIZING
+    global id, capacity, description, name, pid, port, scheduler, status, system_host
+    status = AquariumStatus.initializing
     logger.info('Initializing AquariumService')
     aquarium_config = file_util.load_json_file(config_filename)
 
@@ -106,11 +110,13 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler):
     capacity = aquarium_config['capacity']
     description = aquarium_config['description']
     name = aquarium_config['name']
+    pid = os.getpid()
     port = aquarium_config['port']
     scheduler = _scheduler
     system_host = aquarium_config['systemHost']
 
-    change_status(AquariumStatus.REGISTERING)
+    scheduler.add_job(func=safety_check, id=AquariumJob.safety_check.value, trigger='interval', seconds=10)
+    change_status(AquariumStatus.registering)
 
 
 def initialize_components(aquarium_config):
@@ -141,7 +147,7 @@ def initialize_level_sensors(aquarium_config):
     logger.info('In AquariumService::initialize_level_sensors')
     for level_sensor in aquarium_config['levelSensors']:
         logger.info(f'Initializing level sensor id: {level_sensor["id"]}')
-        level_sensors.append(LevelSensor(level_sensor['id'], level_sensor['resourceKey']))
+        level_sensors.append(LevelSensor(level_sensor['id'], level_sensor['level'], level_sensor['mode'], level_sensor['resourceKey']))
     logger.info(f'{len(level_sensors)} level sensors initialized')
 
 
@@ -164,3 +170,14 @@ def initialize_water_jets(aquarium_config):
 def level_check() -> int:
     logger.info('Checking water level')
     return 100
+
+
+def safety_check():
+    logger.info('Starting safety check')
+    _safe_levels: bool = level_sensor_service.safety_check(level_sensors)
+
+    if not _safe_levels:
+        logger.info('Water level safety check failed. Server exiting')
+        os.kill(pid, 9)
+
+    logger.info('Safety checks passed')

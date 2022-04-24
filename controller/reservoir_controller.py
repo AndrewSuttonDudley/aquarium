@@ -18,4 +18,4 @@ def health_check():
 
 @reservoir_bp.route('/level-check', methods=['GET'])
 def level_check():
-    return '100'
+    return str(reservoir_service.level_check())

@@ -22,46 +22,64 @@
   "levelSensors": [
     {
       "id": "level100A",
+      "level": 100,
+      "mode": "dry",
       "module": "LevelSensor",
       "resourceKey": "GPIO 1"
     },
     {
       "id": "level100B",
+      "level": 100,
+      "mode": "dry",
       "module": "LevelSensor",
       "resourceKey": "GPIO 2"
     },
     {
       "id": "level100C",
+      "level": 100,
+      "mode": "variable",
       "module": "LevelSensor",
       "resourceKey": "GPIO 3"
     },
     {
       "id": "level80A",
+      "level": 80,
+      "mode": "variable",
       "module": "LevelSensor",
       "resourceKey": "GPIO 4"
     },
     {
       "id": "level60A",
+      "level": 60,
+      "mode": "variable",
       "module": "LevelSensor",
       "resourceKey": "GPIO 5"
     },
     {
       "id": "level40A",
+      "level": 40,
+      "mode": "variable",
       "module": "LevelSensor",
       "resourceKey": "GPIO 6"
     },
     {
       "id": "level20A",
+      "level": 20,
+      "mode": "variable",
       "module": "LevelSensor",
       "resourceKey": "GPIO 7"
     },
     {
       "id": "level20B",
+      "level": 20,
+      "mode": "wet",
       "module": "LevelSensor",
       "resourceKey": "GPIO 8"
     },
     {
       "id": "level20C",
+      "level": 20,
+      "mode": "wet",
       "module": "LevelSensor",
       "resourceKey": "GPIO 9"
     }

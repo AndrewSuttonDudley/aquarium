@@ -23,7 +23,7 @@ def register_aquarium_with_system(_aquarium_id: str):
             logger.info(f'_response: {_response}')
         else:
             logger.info(f'Success: {_response}')
-            aquarium_service.change_status(aquarium_service.AquariumStatus.ACTIVE)
+            aquarium_service.change_status(aquarium_service.AquariumStatus.active)
 
 
 def aquarium_health_check(_aquarium_id: str):
@@ -37,8 +37,8 @@ def aquarium_health_check(_aquarium_id: str):
     finally:
         if _response is None or floor(_response.status_code / 100) != 2:
             logger.info(f'response: {_response}')
-            if aquarium_service.status != aquarium_service.AquariumStatus.REGISTERING:
-                aquarium_service.change_status(aquarium_service.AquariumStatus.REGISTERING)
+            if aquarium_service.status != aquarium_service.AquariumStatus.registering:
+                aquarium_service.change_status(aquarium_service.AquariumStatus.registering)
 
 
 def register_reservoir_with_system(_reservoir_id: str):
@@ -54,7 +54,7 @@ def register_reservoir_with_system(_reservoir_id: str):
             logger.info(f'response: {_response}')
         else:
             logger.info(f'Success: {_response}')
-            reservoir_service.change_status(reservoir_service.ReservoirStatus.ACTIVE)
+            reservoir_service.change_status(reservoir_service.ReservoirStatus.active)
 
 
 def reservoir_health_check(_reservoir_id: str):
@@ -68,5 +68,5 @@ def reservoir_health_check(_reservoir_id: str):
     finally:
         if _response is None or floor(_response.status_code / 100) != 2:
             logger.info(f'response: {_response}')
-            if reservoir_service.status != reservoir_service.ReservoirStatus.REGISTERING:
-                reservoir_service.change_status(reservoir_service.ReservoirStatus.REGISTERING)
+            if reservoir_service.status != reservoir_service.ReservoirStatus.registering:
+                reservoir_service.change_status(reservoir_service.ReservoirStatus.registering)

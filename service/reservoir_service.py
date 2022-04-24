@@ -3,9 +3,11 @@ from enum import Enum
 from util import file_util
 import logging
 from typing import Optional
+import os
 
 from component.heater import Heater
 from component.level_sensor import LevelSensor
+from service import level_sensor_service
 from component.pump import Pump
 from connector import system_connector
 from component.thermometer import Thermometer
@@ -17,23 +19,23 @@ logger = logging.getLogger('aquarium.reservoir_service')
 
 
 class ReservoirJob(Enum):
-    REGISTER = 'register'
-    HEALTH_CHECK = 'health_check'
+    health_check = 'health_check'
+    register = 'register'
+    safety_check = 'safety_check'
 
 
 class ReservoirStatus(Enum):
-    STARTED = 'started'
-    INITIALIZING = 'initializing'
-    REGISTERING = 'registering'
-    ACTIVE = 'active'
+    started = 'started'
+    initializing = 'initializing'
+    registering = 'registering'
+    active = 'active'
 
-
-SCHEDULER = 'scheduler'
 
 id: Optional[str] = None
 capacity: Optional[int] = None
 heaters = []
 level_sensors = []
+pid: Optional[int] = None
 port: Optional[int] = None
 receiver_pumps = []
 receiver_valves = []
@@ -42,7 +44,7 @@ send_pumps = []
 send_valves = []
 source_pumps = []
 source_valves = []
-status = ReservoirStatus.STARTED
+status = ReservoirStatus.started
 system_host: Optional[str] = None
 thermometers = []
 water_jets = []
@@ -52,52 +54,53 @@ def change_status(new_status: ReservoirStatus):
     global status
     logger.info(f'Changing reservoir status from {status} to {new_status}')
     match status:
-        case ReservoirStatus.ACTIVE:
+        case ReservoirStatus.active:
             logger.info('status: ACTIVE')
             match new_status:
-                case ReservoirStatus.REGISTERING:
+                case ReservoirStatus.registering:
                     logger.info('new_status: REGISTERING')
-                    status = ReservoirStatus.REGISTERING
-                    logger.info(f'Removing health check job with ID: {ReservoirJob.HEALTH_CHECK.value}. Existing jobs:')
+                    status = ReservoirStatus.registering
+                    logger.info(f'Removing health check job with ID: {ReservoirJob.health_check.value}. Existing jobs:')
                     for job in scheduler.get_jobs():
                         logger.info(f'Job ID: {job.id}')
-                    scheduler.remove_job(job_id=ReservoirJob.HEALTH_CHECK.value)
-                    for job in scheduler.get_jobs():
-                        logger.info(f'Job ID: {job.id}')
-                    scheduler.add_job(func=lambda: system_connector.register_reservoir_with_system(id), id=ReservoirJob.REGISTER.value,
-                                      trigger='interval', seconds=10)
+                    scheduler.remove_job(job_id=ReservoirJob.health_check.value)
+                    scheduler.remove_job(job_id=ReservoirJob.safety_check.value)
+                    scheduler.add_job(func=lambda: system_connector.register_reservoir_with_system(id),
+                                      id=ReservoirJob.register.value, trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
-        case ReservoirStatus.INITIALIZING:
+        case ReservoirStatus.initializing:
             logger.info('status: INITIALIZING')
             match new_status:
-                case ReservoirStatus.REGISTERING:
+                case ReservoirStatus.registering:
                     logger.info('new_status: REGISTERING')
-                    status = ReservoirStatus.REGISTERING
-                    scheduler.add_job(func=lambda: system_connector.register_reservoir_with_system(id), id=ReservoirJob.REGISTER.value,
-                                      trigger='interval', seconds=10)
+                    status = ReservoirStatus.registering
+                    scheduler.add_job(func=lambda: system_connector.register_reservoir_with_system(id),
+                                      id=ReservoirJob.register.value, trigger='interval', seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
-        case ReservoirStatus.REGISTERING:
+        case ReservoirStatus.registering:
             logger.info('status: REGISTERING')
             match new_status:
-                case ReservoirStatus.ACTIVE:
+                case ReservoirStatus.active:
                     logger.info('new_status: ACTIVE')
-                    status = ReservoirStatus.ACTIVE
-                    scheduler.remove_job(job_id=ReservoirJob.REGISTER.value)
-                    scheduler.add_job(func=lambda: system_connector.reservoir_health_check(id), id=ReservoirJob.HEALTH_CHECK.value,
-                                      trigger='interval', seconds=10)
+                    status = ReservoirStatus.active
+                    scheduler.remove_job(job_id=ReservoirJob.register.value)
+                    scheduler.add_job(func=lambda: system_connector.reservoir_health_check(id),
+                                      id=ReservoirJob.health_check.value, trigger='interval', seconds=10)
+                    scheduler.add_job(func=safety_check, id=ReservoirJob.safety_check.value, trigger='interval',
+                                      seconds=10)
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
-        case ReservoirStatus.STARTED:
+        case ReservoirStatus.started:
             logger.info('status: STARTED')
             match new_status:
-                case ReservoirStatus.INITIALIZING:
+                case ReservoirStatus.initializing:
                     logger.info('new_status: INITIALIZING')
-                    status = ReservoirStatus.INITIALIZING
+                    status = ReservoirStatus.initializing
                 case _:
                     logger.info(f'Invalid status change from {status} to {new_status}')
 
@@ -106,20 +109,21 @@ def change_status(new_status: ReservoirStatus):
 
 
 def initialize(config_filename: str, _scheduler: BackgroundScheduler):
-    global id, capacity, port, scheduler, status, system_host
+    global id, capacity, pid, port, scheduler, shutdown, status, system_host
     logger.info('Initializing ReservoirService')
-    change_status(ReservoirStatus.INITIALIZING)
+    change_status(ReservoirStatus.initializing)
     reservoir_config = file_util.load_json_file(config_filename)
 
     initialize_components(reservoir_config)
 
     id = reservoir_config['id']
     capacity = reservoir_config['capacity']
+    pid = os.getpid()
     port = reservoir_config['port']
     scheduler = _scheduler
     system_host = reservoir_config['systemHost']
 
-    change_status(ReservoirStatus.REGISTERING)
+    change_status(ReservoirStatus.registering)
 
 
 def initialize_components(reservoir_config):
@@ -147,7 +151,7 @@ def initialize_level_sensors(reservoir_config):
     logger.info('In ReservoirService::initialize_level_sensors')
     for level_sensor in reservoir_config['levelSensors']:
         logger.info(f'Initializing level sensor id: {level_sensor["id"]}')
-        level_sensors.append(LevelSensor(level_sensor['id'], level_sensor['resourceKey']))
+        level_sensors.append(LevelSensor(level_sensor['id'], level_sensor['level'], level_sensor['mode'], level_sensor['resourceKey']))
     logger.info(f'{len(level_sensors)} level sensors initialized')
 
 
@@ -213,3 +217,19 @@ def initialize_water_jets(reservoir_config):
         logger.info(f'Initializing water jet id: {water_jet["id"]}')
         water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey']))
     logger.info(f'{len(water_jets)} water jets initialized')
+
+
+def level_check() -> int:
+    logger.info('Starting level check')
+    return level_sensor_service.get_water_level(level_sensors)
+
+
+def safety_check():
+    logger.info('Starting safety check')
+    _safe_levels: bool = level_sensor_service.safety_check(level_sensors)
+
+    if not _safe_levels:
+        logger.info('Water level safety check failed. Server exiting')
+        os.kill(pid, 9)
+
+    logger.info('Safety checks passed')

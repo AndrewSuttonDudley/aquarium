@@ -3,6 +3,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
 import logging
 from typing import Optional
+import os
 
 from component.aquarium import Aquarium
 from connector import aquarium_connector
@@ -16,24 +17,25 @@ logger = logging.getLogger('aquarium.system_service')
 
 
 class SystemJob(Enum):
-    HEALTH_CHECK = 'health_check'
-    LEVEL_CHECK = 'level_check'
-    TEMPERATURE_CHECK = 'temperature_check'
-    WATER_CHANGE = 'water_change'
+    health_check = 'health_check'
+    level_check = 'level_check'
+    temperature_check = 'temperature_check'
+    water_change = 'water_change'
 
 
 class SystemStatus(Enum):
-    STARTED = 'started'
-    INITIALIZING = 'initializing'
-    ACTIVE = 'active'
+    started = 'started'
+    initializing = 'initializing'
+    active = 'active'
 
 
 id: Optional[str] = None
 aquariums: dict[str, Aquarium] = dict()
+pid: Optional[int] = None
 port: Optional[int] = None
 reservoirs: dict[str, Reservoir] = dict()
 scheduler: Optional[BackgroundScheduler] = None
-status = SystemStatus.STARTED.value
+status = SystemStatus.started.value
 timezone: Optional[str] = None
 
 
@@ -66,8 +68,8 @@ def health_checks():
 
 
 def initialize(config_filename: str, _scheduler: BackgroundScheduler) -> bool:
-    global id, port, scheduler, status, timezone
-    status = SystemStatus.INITIALIZING
+    global id, pid, port, scheduler, shutdown, status, timezone
+    status = SystemStatus.initializing
     logger.info('Initializing SystemService')
     system_config = file_util.load_json_file(config_filename)
 
@@ -76,9 +78,10 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler) -> bool:
     initialize_reservoirs(system_config)
 
     id = system_config['id']
+    pid = os.getpid()
     port = system_config['port']
     scheduler = _scheduler
-    status = SystemStatus.ACTIVE
+    status = SystemStatus.active
     timezone = system_config['timezone']
 
     start_health_check_job()
@@ -173,13 +176,13 @@ def start_aquarium_schedules(_aquarium: Aquarium):
     for schedule in _aquarium.schedules:
         logger.info(f'Starting schedule: {schedule.to_string()}')
         match schedule.type:
-            case SystemJob.LEVEL_CHECK.value:
+            case SystemJob.level_check.value:
                 scheduler.add_job(func=lambda: start_aquarium_level_check(_aquarium.id), id=schedule.id,
                                   trigger='cron', hour=schedule.hour, minute=schedule.minute, timezone=timezone)
-            case SystemJob.TEMPERATURE_CHECK.value:
+            case SystemJob.temperature_check.value:
                 scheduler.add_job(func=lambda: start_aquarium_temperature_check(_aquarium.id), id=schedule.id,
                                   trigger='cron', hour=schedule.hour, minute=schedule.minute, timezone=timezone)
-            case SystemJob.WATER_CHANGE.value:
+            case SystemJob.water_change.value:
                 scheduler.add_job(func=lambda: start_aquarium_water_change(_aquarium.id), id=schedule.id,
                                   trigger='cron', hour=schedule.hour, minute=schedule.minute, timezone=timezone)
             case _:
@@ -196,7 +199,7 @@ def start_aquarium_water_change(aquarium_id: str):
 
 def start_health_check_job():
     logger.info('Starting health checks')
-    scheduler.add_job(func=health_checks, id=SystemJob.HEALTH_CHECK.value, trigger='interval', seconds=10)
+    scheduler.add_job(func=health_checks, id=SystemJob.health_check.value, trigger='interval', seconds=10)
 
 
 def start_reservoir_level_check(_reservoir_id: str):
@@ -211,13 +214,13 @@ def start_reservoir_schedules(_reservoir: Reservoir):
     for _schedule in _reservoir.schedules:
         logger.info(f'Starting schedule: {_schedule.to_string()}')
         match _schedule.type:
-            case SystemJob.LEVEL_CHECK.value:
+            case SystemJob.level_check.value:
                 scheduler.add_job(func=lambda: start_reservoir_level_check(_reservoir.id),
-                                  id=f'{SystemJob.LEVEL_CHECK.value}_{_reservoir.id}', trigger='cron',
+                                  id=f'{SystemJob.level_check.value}_{_reservoir.id}', trigger='cron',
                                   hour=_schedule.hour, minute=_schedule.minute, timezone=timezone)
-            case SystemJob.TEMPERATURE_CHECK.value:
+            case SystemJob.temperature_check.value:
                 scheduler.add_job(func=lambda: start_reservoir_temperature_check(_reservoir.id),
-                                  id=f'{SystemJob.TEMPERATURE_CHECK.value}_{_reservoir.id}', trigger='cron',
+                                  id=f'{SystemJob.temperature_check.value}_{_reservoir.id}', trigger='cron',
                                   hour=_schedule.hour, minute=_schedule.minute, timezone=timezone)
             case _:
                 logger.error(f'Schedule type "{_schedule.type}" not found')
@@ -231,11 +234,11 @@ def unregister_aquarium(_aquarium_id: str):
     logger.info(f'Unregistering aquarium id: {_aquarium_id}')
     aquariums[_aquarium_id].registered = False
     for _schedule in aquariums[_aquarium_id].schedules:
-        scheduler.remove_job(job_id=f'{_schedule.type}_{_aquarium_id}')
+        scheduler.remove_job(job_id=_schedule.id)
 
 
 def unregister_reservoir(_reservoir_id: str):
     logger.info(f'Unregistering reservoir id: {_reservoir_id}')
     reservoirs[_reservoir_id].registered = False
     for _schedule in reservoirs[_reservoir_id].schedules:
-        scheduler.remove_job(job_id=f'{_schedule.type}_{_reservoir_id}')
+        scheduler.remove_job(job_id=_schedule.id)
