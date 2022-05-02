@@ -5,6 +5,7 @@ from typing import Optional
 import os
 
 from component.heater import Heater
+from component.float_switch import FloatSwitch
 from component.level_sensor import LevelSensor
 from service import level_sensor_service
 from component.pump import Pump
@@ -35,7 +36,7 @@ capacity: Optional[int] = None
 description: Optional[str] = None
 filter_pumps = []
 heaters = []
-level_sensors = []
+level_sensor: Optional[LevelSensor] = None
 name: Optional[str] = None
 pid: Optional[int] = None
 port: Optional[int] = None
@@ -122,7 +123,7 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler):
 def initialize_components(aquarium_config):
     initialize_filter_pumps(aquarium_config)
     initialize_heaters(aquarium_config)
-    initialize_level_sensors(aquarium_config)
+    initialize_level_sensor(aquarium_config)
     initialize_thermometers(aquarium_config)
     initialize_water_jets(aquarium_config)
 
@@ -131,7 +132,7 @@ def initialize_filter_pumps(aquarium_config):
     logger.info('In AquariumService::initialize_filter_pumps')
     for filter_pump in aquarium_config['filterPumps']:
         logger.info(f'Initializing source pump id: {filter_pump["id"]}')
-        filter_pumps.append(Pump(filter_pump['id'], filter_pump['resourceKey']))
+        filter_pumps.append(Pump(filter_pump['id'], filter_pump['resourceKey'], filter_pump['resourceType']))
     logger.info(f'{len(filter_pumps)} filter pumps initialized')
 
 
@@ -139,23 +140,26 @@ def initialize_heaters(aquarium_config):
     logger.info('In AquariumService::initialize_heaters')
     for heater in aquarium_config['heaters']:
         logger.info(f'Initializing heater id: {heater["id"]}')
-        heaters.append(Heater(heater['id'], heater['resourceKey']))
+        heaters.append(Heater(heater['id'], heater['resourceKey'], heater['resourceType']))
     logger.info(f'{len(heaters)} heaters initialized')
 
 
-def initialize_level_sensors(aquarium_config):
-    logger.info('In AquariumService::initialize_level_sensors')
-    for level_sensor in aquarium_config['levelSensors']:
-        logger.info(f'Initializing level sensor id: {level_sensor["id"]}')
-        level_sensors.append(LevelSensor(level_sensor['id'], level_sensor['level'], level_sensor['mode'], level_sensor['resourceKey']))
-    logger.info(f'{len(level_sensors)} level sensors initialized')
+def initialize_level_sensor(aquarium_config):
+    global level_sensor
+    logger.info('In AquariumService::initialize_level_sensor')
+    level_sensor = LevelSensor(aquarium_config['levelSensor']['id'])
+
+    for _float_switch in aquarium_config['levelSensor']['floatSwitches']:
+        logger.info(f'Initializing float switch id: {_float_switch["id"]}')
+        level_sensor.add_float_switch(FloatSwitch(_float_switch['id'], _float_switch['level'], _float_switch['mode'], _float_switch['resourceKey'], _float_switch['resourceType']))
+    logger.info(f'Level sensor initialized with {len(level_sensor.float_switches)} float switches')
 
 
 def initialize_thermometers(aquarium_config):
     logger.info('In AquariumService::initialize_thermometers')
     for thermometer in aquarium_config['thermometers']:
         logger.info(f'Initializing thermometer id: {thermometer["id"]}')
-        thermometers.append(Thermometer(thermometer['id'], thermometer['resourceKey']))
+        thermometers.append(Thermometer(thermometer['id'], thermometer['resourceKey'], thermometer['resourceType']))
     logger.info(f'{len(thermometers)} thermometers initialized')
 
 
@@ -163,7 +167,7 @@ def initialize_water_jets(aquarium_config):
     logger.info('In AquariumService::initialize_water_jets')
     for water_jet in aquarium_config['waterJets']:
         logger.info(f'Initializing water jet id: {water_jet["id"]}')
-        water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey']))
+        water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey'], water_jet['resourceType']))
     logger.info(f'{len(water_jets)} water jets initialized')
 
 
@@ -174,7 +178,7 @@ def level_check() -> int:
 
 def safety_check():
     logger.info('Starting safety check')
-    _safe_levels: bool = level_sensor_service.safety_check(level_sensors)
+    _safe_levels: bool = level_sensor_service.safety_check(level_sensor)
 
     if not _safe_levels:
         logger.info('Water level safety check failed. Server exiting')

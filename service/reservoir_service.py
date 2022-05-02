@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 import os
 
+from component.float_switch import FloatSwitch
 from component.heater import Heater
 from component.level_sensor import LevelSensor
 from service import level_sensor_service
@@ -34,7 +35,7 @@ class ReservoirStatus(Enum):
 id: Optional[str] = None
 capacity: Optional[int] = None
 heaters = []
-level_sensors = []
+level_sensor: Optional[LevelSensor] = None
 pid: Optional[int] = None
 port: Optional[int] = None
 receiver_pumps = []
@@ -48,6 +49,7 @@ status = ReservoirStatus.started
 system_host: Optional[str] = None
 thermometers = []
 water_jets = []
+water_level: Optional[int] = None
 
 
 def change_status(new_status: ReservoirStatus):
@@ -109,7 +111,7 @@ def change_status(new_status: ReservoirStatus):
 
 
 def initialize(config_filename: str, _scheduler: BackgroundScheduler):
-    global id, capacity, pid, port, scheduler, shutdown, status, system_host
+    global id, capacity, pid, port, scheduler, status, system_host
     logger.info('Initializing ReservoirService')
     change_status(ReservoirStatus.initializing)
     reservoir_config = file_util.load_json_file(config_filename)
@@ -128,7 +130,7 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler):
 
 def initialize_components(reservoir_config):
     initialize_heaters(reservoir_config)
-    initialize_level_sensors(reservoir_config)
+    initialize_level_sensor(reservoir_config)
     initialize_receiver_pumps(reservoir_config)
     initialize_receiver_valves(reservoir_config)
     initialize_send_pumps(reservoir_config)
@@ -143,23 +145,26 @@ def initialize_heaters(reservoir_config):
     logger.info('In ReservoirService::initialize_heaters')
     for heater in reservoir_config['heaters']:
         logger.info(f'Initializing heater id: {heater["id"]}')
-        heaters.append(Heater(heater['id'], heater['resourceKey']))
+        heaters.append(Heater(heater['id'], heater['resourceKey'], heater['resourceType']))
     logger.info(f'{len(heaters)} heaters initialized')
 
 
-def initialize_level_sensors(reservoir_config):
-    logger.info('In ReservoirService::initialize_level_sensors')
-    for level_sensor in reservoir_config['levelSensors']:
-        logger.info(f'Initializing level sensor id: {level_sensor["id"]}')
-        level_sensors.append(LevelSensor(level_sensor['id'], level_sensor['level'], level_sensor['mode'], level_sensor['resourceKey']))
-    logger.info(f'{len(level_sensors)} level sensors initialized')
+def initialize_level_sensor(reservoir_config):
+    global level_sensor
+    logger.info('In ReservoirService::initialize_level_sensor')
+    level_sensor = LevelSensor(reservoir_config['levelSensor']["id"])
+
+    for _float_switch in reservoir_config['levelSensor']['floatSwitches']:
+        logger.info(f'Initializing float switch id: {_float_switch["id"]}')
+        level_sensor.add_float_switch(FloatSwitch(_float_switch['id'], _float_switch['level'], _float_switch['mode'], _float_switch['resourceKey'], _float_switch['resourceType']))
+    logger.info(f'Level sensor initialized with {len(level_sensor.float_switches)} float switches')
 
 
 def initialize_receiver_pumps(reservoir_config):
     logger.info('In ReservoirService::initialize_receiver_pumps')
     for receiver_pump in reservoir_config['receiverPumps']:
         logger.info(f'Initializing receiver pump id: {receiver_pump["id"]}')
-        receiver_pumps.append(Pump(receiver_pump['id'], receiver_pump['resourceKey']))
+        receiver_pumps.append(Pump(receiver_pump['id'], receiver_pump['resourceKey'], receiver_pump['resourceType']))
     logger.info(f'{len(receiver_pumps)} receiver pumps initialized')
 
 
@@ -167,7 +172,7 @@ def initialize_receiver_valves(reservoir_config):
     logger.info('In ReservoirService::initialize_receiver_valves')
     for receiver_valve in reservoir_config['receiverValves']:
         logger.info(f'Initializing receiver valve id: {receiver_valve["id"]}')
-        receiver_valves.append(Valve(receiver_valve['id'], receiver_valve['resourceKey']))
+        receiver_valves.append(Valve(receiver_valve['id'], receiver_valve['resourceKey'], receiver_valve['resourceType']))
     logger.info(f'{len(receiver_valves)} receiver valves initialized')
 
 
@@ -175,7 +180,7 @@ def initialize_send_pumps(reservoir_config):
     logger.info('In ReservoirService::initialize_send_pumps')
     for send_pump in reservoir_config['sendPumps']:
         logger.info(f'Initializing send pump id: {send_pump["id"]}')
-        send_pumps.append(Pump(send_pump['id'], send_pump['resourceKey']))
+        send_pumps.append(Pump(send_pump['id'], send_pump['resourceKey'], send_pump['resourceType']))
     logger.info(f'{len(send_pumps)} send pumps initialized')
 
 
@@ -183,7 +188,7 @@ def initialize_send_valves(reservoir_config):
     logger.info('In ReservoirService::initialize_send_valves')
     for send_valve in reservoir_config['sendValves']:
         logger.info(f'Initializing send valve id: {send_valve["id"]}')
-        send_valves.append(Valve(send_valve['id'], send_valve['resourceKey']))
+        send_valves.append(Valve(send_valve['id'], send_valve['resourceKey'], send_valve['resourceType']))
     logger.info(f'{len(send_valves)} send valves initialized')
 
 
@@ -191,7 +196,7 @@ def initialize_source_pumps(reservoir_config):
     logger.info('In ReservoirService::initialize_source_pumps')
     for source_pump in reservoir_config['sourcePumps']:
         logger.info(f'Initializing source pump id: {source_pump["id"]}')
-        source_pumps.append(Pump(source_pump['id'], source_pump['resourceKey']))
+        source_pumps.append(Pump(source_pump['id'], source_pump['resourceKey'], source_pump['resourceType']))
     logger.info(f'{len(source_pumps)} source pumps initialized')
 
 
@@ -199,7 +204,7 @@ def initialize_source_valves(reservoir_config):
     logger.info('In ReservoirService::initialize_source_valves')
     for source_valve in reservoir_config['sourceValves']:
         logger.info(f'Initializing source valve id: {source_valve["id"]}')
-        source_valves.append(Valve(source_valve['id'], source_valve['resourceKey']))
+        source_valves.append(Valve(source_valve['id'], source_valve['resourceKey'], source_valve['resourceType']))
     logger.info(f'{len(source_valves)} source valves initialized')
 
 
@@ -207,7 +212,7 @@ def initialize_thermometers(reservoir_config):
     logger.info('In ReservoirService::initialize_thermometers')
     for thermometer in reservoir_config['thermometers']:
         logger.info(f'Initializing thermometer id: {thermometer["id"]}')
-        thermometers.append(Thermometer(thermometer['id'], thermometer['resourceKey']))
+        thermometers.append(Thermometer(thermometer['id'], thermometer['resourceKey'], thermometer['resourceType']))
     logger.info(f'{len(thermometers)} thermometers initialized')
 
 
@@ -215,18 +220,18 @@ def initialize_water_jets(reservoir_config):
     logger.info('In ReservoirService::initialize_water_jets')
     for water_jet in reservoir_config['waterJets']:
         logger.info(f'Initializing water jet id: {water_jet["id"]}')
-        water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey']))
+        water_jets.append(WaterJet(water_jet['id'], water_jet['resourceKey'], water_jet['resourceType']))
     logger.info(f'{len(water_jets)} water jets initialized')
 
 
 def level_check() -> int:
     logger.info('Starting level check')
-    return level_sensor_service.get_water_level(level_sensors)
+    return level_sensor_service.get_water_level(level_sensor)
 
 
 def safety_check():
     logger.info('Starting safety check')
-    _safe_levels: bool = level_sensor_service.safety_check(level_sensors)
+    _safe_levels: bool = level_sensor_service.safety_check(level_sensor)
 
     if not _safe_levels:
         logger.info('Water level safety check failed. Server exiting')

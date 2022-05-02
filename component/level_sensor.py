@@ -1,6 +1,9 @@
-import logging
 from enum import Enum
+import logging
 from typing import Optional
+
+from component import FloatSwitch
+from component import FloatSwitchStatus
 
 
 logger = logging.getLogger('aquarium.level_sensor')
@@ -14,27 +17,29 @@ class LevelSensorMode(Enum):
 
 class LevelSensorStatus(Enum):
     dry = 'dry'
+    error = 'error'
     wet = 'wet'
 
 
 class LevelSensor:
 
     id: Optional[str] = None
-    mode: Optional[LevelSensorMode] = None
-    resource_key: Optional[str] = None
-    level: Optional[int] = None
+    float_switches: Optional[list[FloatSwitch]] = None
 
-    def __init__(self, _id: str, _level: int, _mode: str, _resource_key: str):
+    def __init__(self, _id):
         self.id = _id
-        self.level = _level
-        self.mode = LevelSensorMode[_mode]
-        self.resource_key = _resource_key
+        self.float_switches = []
 
-    def water_presence(self) -> LevelSensorStatus:
-        # logger.info(f'Checking for water presence on level sensor: {self.to_string()}')
-        if self.mode != LevelSensorMode.dry:
-            return LevelSensorStatus.wet
-        return LevelSensorStatus.dry
+    def add_float_switch(self, float_switch: FloatSwitch):
+        self.float_switches.append(float_switch)
+
+    def get_current_level(self) -> int:
+        highest_wet_float_switch: Optional[FloatSwitch] = None
+        for float_switch in self.float_switches:
+            if highest_wet_float_switch is None or \
+                    (float_switch.get_status() == FloatSwitchStatus.wet and highest_wet_float_switch.level < float_switch.level):
+                highest_wet_float_switch = float_switch
+        return highest_wet_float_switch.level
 
     def to_string(self):
-        return f'LevelSensor(id: {self.id}, level: {self.level}, mode: {self.mode}, resource_key: {self.resource_key})'
+        return f'LevelSensor(id: {self.id})'

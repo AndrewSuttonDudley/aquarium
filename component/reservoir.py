@@ -1,5 +1,7 @@
 from typing import Optional
 
+from component.schedule import Schedule
+
 
 class Reservoir:
 
@@ -9,7 +11,7 @@ class Reservoir:
     initialized: bool = True
     name: Optional[str] = None
     registered: bool = False
-    schedules: Optional[list] = None
+    schedules: Optional[list[Schedule]] = None
     tested: bool = False
 
     def __init__(self, id, capacity, host, name):

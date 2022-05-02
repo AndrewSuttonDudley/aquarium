@@ -10,7 +10,7 @@ class Schedule:
     percent_change: Optional[int] = None
     type: Optional[str] = None
 
-    def __init__(self, id: str, day_of_week: str, hour: str, minute: str, percent_change: str, type: str):
+    def __init__(self, id: str, day_of_week: str, hour: str, minute: str, percent_change: int, type: str):
         self.id = id
         self.day_of_week = day_of_week
         self.hour = hour

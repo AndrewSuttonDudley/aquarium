@@ -1,8 +1,6 @@
-import logging
 from typing import Optional
 
-
-logger = logging.getLogger('aquarium.system_service')
+from component import Schedule
 
 
 class Aquarium:
@@ -13,10 +11,9 @@ class Aquarium:
     initialized: bool = False
     name: Optional[str] = None
     registered: bool = False
-    schedules: Optional[list] = None
-    tested: bool = False
+    schedules: Optional[list[Schedule]] = None
 
-    def __init__(self, id, capacity, host, name):
+    def __init__(self, id: str, capacity: int, host: str, name: str):
         self.id = id
         self.capacity = capacity
         self.host = host

@@ -9,98 +9,116 @@
     {
       "id": "filterPump1",
       "module": "Pump",
-      "resourceKey": "Receptacle 1"
+      "resourceKey": 1,
+      "resourceType": "Receptacle"
     }
   ],
   "heaters": [
     {
       "id": "heater1",
       "module": "Heater",
-      "resourceKey": "Receptacle 2"
+      "resourceKey": 2,
+      "resourceType": "Receptacle"
     }
   ],
-  "levelSensors": [
-    {
-      "id": "level100A",
-      "level": 100,
-      "mode": "dry",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 1"
-    },
-    {
-      "id": "level100B",
-      "level": 100,
-      "mode": "dry",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 2"
-    },
-    {
-      "id": "level100C",
-      "level": 100,
-      "mode": "variable",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 3"
-    },
-    {
-      "id": "level80A",
-      "level": 80,
-      "mode": "variable",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 4"
-    },
-    {
-      "id": "level60A",
-      "level": 60,
-      "mode": "variable",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 5"
-    },
-    {
-      "id": "level40A",
-      "level": 40,
-      "mode": "variable",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 6"
-    },
-    {
-      "id": "level20A",
-      "level": 20,
-      "mode": "variable",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 7"
-    },
-    {
-      "id": "level20B",
-      "level": 20,
-      "mode": "wet",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 8"
-    },
-    {
-      "id": "level20C",
-      "level": 20,
-      "mode": "wet",
-      "module": "LevelSensor",
-      "resourceKey": "GPIO 9"
-    }
-  ],
+  "levelSensor": {
+    "id": "LevelSensorBernard",
+    "floatSwitches": [
+      {
+        "id": "level100A",
+        "level": 100,
+        "mode": "dry",
+        "module": "LevelSensor",
+        "resourceKey": 1,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level100B",
+        "level": 100,
+        "mode": "dry",
+        "module": "LevelSensor",
+        "resourceKey": 2,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level100C",
+        "level": 100,
+        "mode": "variable",
+        "module": "LevelSensor",
+        "resourceKey": 3,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level80A",
+        "level": 80,
+        "mode": "variable",
+        "module": "LevelSensor",
+        "resourceKey": 4,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level60A",
+        "level": 60,
+        "mode": "variable",
+        "module": "LevelSensor",
+        "resourceKey": 5,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level40A",
+        "level": 40,
+        "mode": "variable",
+        "module": "LevelSensor",
+        "resourceKey": 6,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level20A",
+        "level": 20,
+        "mode": "variable",
+        "module": "LevelSensor",
+        "resourceKey": 7,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level20B",
+        "level": 20,
+        "mode": "wet",
+        "module": "LevelSensor",
+        "resourceKey": 8,
+        "resourceType": "GPIO"
+      },
+      {
+        "id": "level20C",
+        "level": 20,
+        "mode": "wet",
+        "module": "LevelSensor",
+        "resourceKey": 9,
+        "resourceType": "GPIO"
+      }
+    ],
+    "module": "LevelSensor"
+  },
   "thermometers": [
     {
       "id": "thermometer1",
       "module": "Thermometer",
-      "resourceKey": "GPIO 10"
+      "resourceKey": 10,
+      "resourceType": "GPIO"
     },
     {
       "id": "thermometer2",
       "module": "Thermometer",
-      "resourceKey": "GPIO 11"
+      "resourceKey": 11,
+      "resourceType": "GPIO"
     }
   ],
   "waterJets": [
     {
       "id": "waterJet1",
       "module": "WaterJet",
-      "resourceKey": "Receptacle 3"
+      "resourceKey": 3,
+      "resourceType": "Receptacle"
     }
   ]
 }
