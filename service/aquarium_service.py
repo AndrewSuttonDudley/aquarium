@@ -1,5 +1,6 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from enum import Enum
+import RPi.GPIO as GPIO
 import logging
 from typing import Optional
 import os
@@ -103,6 +104,7 @@ def initialize(config_filename: str, _scheduler: BackgroundScheduler):
     global id, capacity, description, name, pid, port, scheduler, status, system_host
     status = AquariumStatus.initializing
     logger.info('Initializing AquariumService')
+    GPIO.setmode(GPIO.BCM)
     aquarium_config = file_util.load_json_file(config_filename)
 
     initialize_components(aquarium_config)

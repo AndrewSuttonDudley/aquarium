@@ -1,5 +1,5 @@
 from enum import Enum
-import RPi.GPIO as GPIO
+from RPi import GPIO
 from typing import Optional
 
 from component.resource_type import ResourceType
@@ -30,13 +30,14 @@ class FloatSwitch:
         self.mode = mode
         self.resource_key = resource_key
         self.resource_type = resource_type
-        # Todo: Set status based on actual float switch
+
+        GPIO.setup(self.resource_key, GPIO.IN)
 
     def get_status(self) -> FloatSwitchStatus:
-        # Todo: Change this to get status from actual float switch
-        if self.mode != FloatSwitchMode.dry:
+        if GPIO.input(self.resource_key) == 1:
+            return FloatSwitchStatus.dry
+        else:
             return FloatSwitchStatus.wet
-        return FloatSwitchStatus.dry
 
     def to_string(self):
         return f'FloatSwitch(id: {self.id}, level: {self.level}, mode: {self.mode}, resource_key: {self.resource_key}, resource_type: {self.resource_type})'
