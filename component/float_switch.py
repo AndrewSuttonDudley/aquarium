@@ -1,4 +1,5 @@
 from enum import Enum
+import RPi.GPIO as GPIO
 from typing import Optional
 
 from component.resource_type import ResourceType
